@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter
+[
+  <!ENTITY % entities SYSTEM "entity-decl.ent">
+    %entities;
+]>
+<chapter xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" version="5.0" xml:id="cha-libvirt-config-gui">
+ <title>Configuring virtual machines with &vmm;</title>
+ <para>
+  The left panel of the window lists &vmguest; overview and already installed
+  hardware. After clicking an item in the list, you can access its detailed
+  settings in the details view. You can change the hardware parameters to match
+  your needs, then click <guimenu>Apply</guimenu> to confirm them. Some changes
+  take effect immediately, while others need a reboot of the machine&mdash;and
+  <systemitem>virt-manager</systemitem> warns you about that fact.
+ </para>
+ <sect1>
+  <title>Machine setup</title>
+
+  <para>
+   This section describes the setup of the virtualized processor and memory
+   hardware. These components are vital to a &vmguest;, therefore you cannot
+   remove them. It also shows how to view the overview and performance
+   information, and how to change boot parameters.
+  </para>
+ </sect1>
+</chapter>
