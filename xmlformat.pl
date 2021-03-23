@@ -137,6 +137,7 @@ my %opt_list = (
   "format"    => [ "block", "inline", "verbatim" ],
   "normalize"   => [ "yes", "no" ],
   "subindent"   => undef,
+  "wrap-type"   => [ "length", "sentence" ],
   "wrap-length" => undef,
   "entry-break" => undef,
   "exit-break"  => undef,
@@ -173,6 +174,7 @@ my $type = shift;
     "format"    => "block",
     "normalize"   => "no",
     "subindent"   => 0,
+    "wrap-type" => "length",
     "wrap-length" => 0,
     "entry-break" => 0, # do not change
     "exit-break"  => 1, # do not change
@@ -186,6 +188,7 @@ my $type = shift;
     "format"    => "block",
     "normalize"   => "no",
     "subindent"   => 1,
+    "wrap-type" => "length",
     "wrap-length" => 0,
     "entry-break" => 1,
     "exit-break"  => 1,
@@ -359,6 +362,14 @@ my $self = shift;
   my $size = @{$self->{block_opts_stack}};
   my $opts = $self->{block_opts_stack}->[$size-1];
   return $opts->{"wrap-length"};
+}
+sub block_wrap_type
+{
+my $self = shift;
+
+  my $size = @{$self->{block_opts_stack}};
+  my $opts = $self->{block_opts_stack}->[$size-1];
+  return $opts->{"wrap-type"};
 }
 
 # Set the current block's break type, or return the number of newlines
@@ -1394,6 +1405,7 @@ my ($self, $indent) = @_;
   {
     $self->emit_break (0);
     my $wrap_len = $self->block_wrap_length ();
+    my $wrap_type = $self->block_wrap_type ();
     my $break_value = $self->block_break_value ();
     if ($wrap_len <= 0)
     {
@@ -1407,6 +1419,7 @@ my ($self, $indent) = @_;
       my @lines = $self->line_wrap ($self->{pending},
                   $first_indent,
                   $indent,
+                  $wrap_type,
                   $wrap_len);
       $s .= join ("\n", @lines);
     }
@@ -1438,10 +1451,9 @@ my ($self, $indent) = @_;
 
 sub line_wrap
 {
-my ($self, $strs, $first_indent, $rest_indent, $max_len) = @_;
+my ($self, $strs, $first_indent, $rest_indent, $wrap_type, $max_len) = @_;
 
   # First, tokenize the strings
-
   my @words = ();
   foreach my $str (@{$strs})
   {
@@ -1493,10 +1505,12 @@ my ($self, $strs, $first_indent, $rest_indent, $max_len) = @_;
     # word if no line-break occurs.
     if ($word =~ /^\s/)
     {
-       $white .= $word;
+      $white .= $word;
+      $index++;
       next;
     }
     my $wlen = length ($word);
+    my $prev_index = $index - 1;
     if ($llen == 0)
     {
       # New output line; it gets at least one word (discard any
@@ -1505,9 +1519,10 @@ my ($self, $strs, $first_indent, $rest_indent, $max_len) = @_;
       $llen = $indent + $wlen;
       $indent = $rest_indent;
       $white = "";
+      $index++;
       next;
     }
-    if ($llen + length ($white) + $wlen > $max_len)
+    if( $wrap_type eq "length" and ($llen + length ($white) + $wlen > $max_len))
     {
       # Word (plus saved whitespace) won't fit on current line.
       # Begin new line (discard any saved whitespace).
@@ -1516,12 +1531,30 @@ my ($self, $strs, $first_indent, $rest_indent, $max_len) = @_;
       $llen = $indent + $wlen;
       $indent = $rest_indent;
       $white = "";
+      $index++;
       next;
     }
+    elsif( $wrap_type eq "sentence" and (substr($words2[$index-1],-1) eq "."))
+    {
+use Data::Dumper;
+print STDERR "WORDS2: " . $words2[$index] . "\n";
+      #if(substr($word,-1) eq "." && substr($words2[$index + 1],0,1) =~ /^[[:upper:]]/)
+      # Word (plus saved whitespace) won't fit on current line.
+      # Begin new line (discard any saved whitespace).
+      push (@lines, $line);
+      $line = " " x $indent . $word;
+      $llen = $indent + $wlen;
+      $indent = $rest_indent;
+      $white = "";
+      $index++;
+      next;
+    }
+
     # add word to current line with saved whitespace between
     $line .= $white . $word;
     $llen += length ($white) + $wlen;
     $white = "";
+    $index++;
   }
 
   # push remaining line, if any
