@@ -1498,6 +1498,7 @@ my ($self, $strs, $first_indent, $rest_indent, $wrap_type, $max_len) = @_;
   my $indent = $first_indent;
   # saved-up whitespace to put before next non-white word
   my $white = "";
+  my $prev_word = "";
 
   foreach my $word (@words2)   # ... while words remain to wrap
   {
@@ -1506,11 +1507,9 @@ my ($self, $strs, $first_indent, $rest_indent, $wrap_type, $max_len) = @_;
     if ($word =~ /^\s/)
     {
       $white .= $word;
-      $index++;
       next;
     }
     my $wlen = length ($word);
-    my $prev_index = $index - 1;
     if ($llen == 0)
     {
       # New output line; it gets at least one word (discard any
@@ -1519,7 +1518,6 @@ my ($self, $strs, $first_indent, $rest_indent, $wrap_type, $max_len) = @_;
       $llen = $indent + $wlen;
       $indent = $rest_indent;
       $white = "";
-      $index++;
       next;
     }
     if( $wrap_type eq "length" and ($llen + length ($white) + $wlen > $max_len))
@@ -1531,30 +1529,28 @@ my ($self, $strs, $first_indent, $rest_indent, $wrap_type, $max_len) = @_;
       $llen = $indent + $wlen;
       $indent = $rest_indent;
       $white = "";
-      $index++;
       next;
     }
-    elsif( $wrap_type eq "sentence" and (substr($words2[$index-1],-1) eq "."))
+
+    if($wrap_type eq "sentence")
     {
-use Data::Dumper;
-print STDERR "WORDS2: " . $words2[$index] . "\n";
-      #if(substr($word,-1) eq "." && substr($words2[$index + 1],0,1) =~ /^[[:upper:]]/)
-      # Word (plus saved whitespace) won't fit on current line.
-      # Begin new line (discard any saved whitespace).
-      push (@lines, $line);
-      $line = " " x $indent . $word;
-      $llen = $indent + $wlen;
-      $indent = $rest_indent;
-      $white = "";
-      $index++;
-      next;
+      if(substr($prev_word,-1) =~ /[\.\?\!]/ and substr($word,0,1) =~ /^[[:upper:]]/)
+      {
+        # Begin new line when a new sentence is discovered.
+        push (@lines, $line);
+        $line = " " x $indent . $word;
+        $llen = $indent + $wlen;
+        $indent = $rest_indent;
+        $white = "";
+        next;
+      }
+      $prev_word = $word;
     }
 
     # add word to current line with saved whitespace between
     $line .= $white . $word;
     $llen += length ($white) + $wlen;
     $white = "";
-    $index++;
   }
 
   # push remaining line, if any
